@@ -1,14 +1,15 @@
 # Base image with CUDA 12.2
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 
-# Install system dependencies, including python3-venv and libgl1-mesa-glx for OpenCV
+# Install system dependencies, including python3-venv, libgl1-mesa-glx, and libglib2.0-0
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
     python3-venv \
     git \
     build-essential \
-    libgl1-mesa-glx
+    libgl1-mesa-glx \
+    libglib2.0-0
 
 # Define environment variables for UID and GID
 ENV PUID=${PUID:-1000}
