@@ -44,7 +44,7 @@ ENV PATH="/app/fluxgym-venv/bin:$PATH"
 # Upgrade pip inside fluxgym-venv and install FluxGym dependencies
 COPY ./requirements.txt ./requirements.txt
 RUN /app/fluxgym-venv/bin/pip install --upgrade pip && \
-    /app/fluxgym-venv/bin/pip install --no-cache-dir -r ./requirements.txt
+    /app/fluxgym-venv/bin/pip install --no-cache-dir --use-deprecated=legacy-resolver -r ./requirements.txt
 # Install Torch, Torchvision, and Torchaudio for CUDA 12.2
 RUN /app/fluxgym-venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
 
