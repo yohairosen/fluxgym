@@ -1,14 +1,14 @@
-services:
+version: "3.8"
 
+services:
   fluxgym:
     build:
       context: .
-      # change the dockerfile to Dockerfile.cuda12.4 if you are running CUDA 12.4 drivers otherwise leave as is
+      # Change the dockerfile to Dockerfile.cuda12.4 if running CUDA 12.4 drivers
       dockerfile: Dockerfile
     image: fluxgym
     container_name: fluxgym
-    ports:
-      - 7860:7860
+    network_mode: "host"  # <-- Enables host networking
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
