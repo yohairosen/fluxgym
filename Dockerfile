@@ -1,7 +1,7 @@
 # Base image with CUDA 12.2
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 
-# Install system dependencies, including python3-venv, libgl1-mesa-glx, and libglib2.0-0
+# Install system dependencies, including python3-venv, libgl1-mesa-glx, and libglib2.0-0 for OpenCV
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
@@ -15,10 +15,9 @@ RUN apt-get update -y && apt-get install -y \
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 
-# Create a group with the specified GID
-RUN groupadd -g "${PGID}" appuser
-# Create a user with the specified UID and GID
-RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
+# Create a group and a user with the specified UID/GID
+RUN groupadd -g "${PGID}" appuser && \
+    useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
 
 WORKDIR /app
 
@@ -57,19 +56,17 @@ RUN /app/fluxgym-venv/bin/pip install --no-cache-dir -r ./requirements.txt
 # Install Torch, Torchvision, and Torchaudio for CUDA 12.2 in FluxGym's venv
 RUN /app/fluxgym-venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
 
-# Set PYTHONPATH so FluxGym can access Kohya's installed modules
-ENV PYTHONPATH="/app/kohya-venv/lib/python3.10/site-packages:$PYTHONPATH"
+# Set PYTHONPATH so that FluxGym can access Kohya's installed modules and the sd-scripts folder.
+ENV PYTHONPATH="/app/sd-scripts:/app/kohya-venv/lib/python3.10/site-packages:$PYTHONPATH"
 
 RUN chown -R appuser:appuser /app
 
-# Delete redundant requirements.txt and sd-scripts directory
-RUN rm -r ./sd-scripts
-RUN rm ./requirements.txt
+# (No cleanup here: we preserve the sd-scripts directory so train_network is available)
 
 # Run application as non-root
 USER appuser
 
-# Copy fluxgym application code
+# Copy FluxGym application code
 COPY . ./fluxgym
 
 EXPOSE 7860
@@ -78,5 +75,5 @@ ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 WORKDIR /app/fluxgym
 
-# Run fluxgym using its own virtual environment, but with access to Kohya's modules
+# Run FluxGym using its own virtual environment
 CMD ["/app/fluxgym-venv/bin/python3", "./app.py"]
