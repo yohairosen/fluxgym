@@ -23,7 +23,9 @@ WORKDIR /app
 
 # Create and activate a virtual environment for Kohya
 RUN python3 -m venv /app/kohya-venv
-ENV PATH="/app/kohya-venv/bin:$PATH"  # Ensure Kohya venv is used in this block
+
+# Ensure Kohya venv is used in this block
+ENV PATH="/app/kohya-venv/bin:$PATH"
 
 # Upgrade pip inside Kohya's venv
 RUN /app/kohya-venv/bin/pip install --upgrade pip
@@ -38,7 +40,9 @@ RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
 
 # Create and activate a virtual environment for FluxGym
 RUN python3 -m venv /app/fluxgym-venv
-ENV PATH="/app/fluxgym-venv/bin:$PATH"  # Ensure FluxGym venv is used in this block
+
+# Ensure FluxGym venv is used in this block
+ENV PATH="/app/fluxgym-venv/bin:$PATH"
 
 # Upgrade pip inside FluxGym's venv
 RUN /app/fluxgym-venv/bin/pip install --upgrade pip
