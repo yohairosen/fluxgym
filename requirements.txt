@@ -33,4 +33,4 @@ gradio
 python-slugify
 imagesize
 pydantic==2.9.2
-triton==2.1.0
+triton
