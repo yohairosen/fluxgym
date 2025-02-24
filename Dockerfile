@@ -5,7 +5,7 @@ FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
-    python3-venv \  # <-- Added this to fix venv issue
+    python3-venv \   # <-- Fixed: Ensure there is no trailing backslash if last item
     git \
     build-essential  # Install dependencies for building extensions
 
