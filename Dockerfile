@@ -47,7 +47,7 @@ ENV PATH="/app/fluxgym-venv/bin:$PATH"
 # Upgrade pip inside fluxgym-venv
 RUN /app/fluxgym-venv/bin/pip install --upgrade pip
 
-RUN app/fluxgym-venv/bin/pip install --upgrade --force-reinstall triton==2.1.0
+RUN /app/fluxgym-venv/bin/pip install --upgrade --force-reinstall triton==2.1.0
 
 # Copy requirements first to leverage Docker cache (prevents unnecessary reinstalls)
 COPY ./requirements.txt /app/requirements.txt
