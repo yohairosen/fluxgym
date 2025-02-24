@@ -5,9 +5,9 @@ FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
-    python3-venv \   # <-- Fixed: Ensure there is no trailing backslash if last item
+    python3-venv \
     git \
-    build-essential  # Install dependencies for building extensions
+    build-essential
 
 # Define environment variables for UID and GID
 ENV PUID=${PUID:-1000}
@@ -22,30 +22,27 @@ WORKDIR /app
 
 ### ---------------------- KOHYA ENVIRONMENT ---------------------- ###
 
-# Install python3-venv to fix missing ensurepip error
-RUN apt-get update && apt-get install -y python3-venv
-
-# Create and activate a virtual environment for Kohya
+# Create a virtual environment for Kohya
 RUN python3 -m venv /app/kohya-venv
 
-# Ensure Kohya venv is used in this block
+# Use Kohya venv
 ENV PATH="/app/kohya-venv/bin:$PATH"
 
 # Upgrade pip inside Kohya's venv
 RUN /app/kohya-venv/bin/pip install --upgrade pip
 
-# Clone and install kohya-ss/sd-scripts inside kohya-venv
+# Clone and install kohya-ss/sd-scripts inside Kohya's venv
 RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
     cd sd-scripts && \
     /app/kohya-venv/bin/pip install --no-cache-dir -r ./requirements.txt && \
-    /app/kohya-venv/bin/pip install --no-cache-dir .  # Ensure 'library' is installed
+    /app/kohya-venv/bin/pip install --no-cache-dir . 
 
 ### ---------------------- FLUXGYM ENVIRONMENT ---------------------- ###
 
-# Create and activate a virtual environment for FluxGym
+# Create a virtual environment for FluxGym
 RUN python3 -m venv /app/fluxgym-venv
 
-# Ensure FluxGym venv is used in this block
+# Use FluxGym venv
 ENV PATH="/app/fluxgym-venv/bin:$PATH"
 
 # Upgrade pip inside FluxGym's venv
@@ -55,7 +52,7 @@ RUN /app/fluxgym-venv/bin/pip install --upgrade pip
 COPY ./requirements.txt ./requirements.txt
 RUN /app/fluxgym-venv/bin/pip install --no-cache-dir -r ./requirements.txt
 
-# Install Torch, Torchvision, and Torchaudio for CUDA 12.2 inside FluxGym's venv
+# Install Torch, Torchvision, and Torchaudio for CUDA 12.2 in FluxGym's venv
 RUN /app/fluxgym-venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
 
 # Set PYTHONPATH so FluxGym can access Kohya's installed modules
