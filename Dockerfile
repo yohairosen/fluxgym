@@ -1,79 +1,55 @@
 # Base image with CUDA 12.2
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 
-# Install system dependencies, including python3-venv and libraries needed for OpenCV
+# Install pip if not already installed
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
-    python3-venv \
     git \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0
+    build-essential  # Install dependencies for building extensions
 
-# Use a faster PyPI mirror for better package download speeds
-RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+# Define environment variables for UID and GID and local timezone
+ENV PUID=${PUID:-1000}
+ENV PGID=${PGID:-1000}
 
-# Define environment variables for UID and GID (with defaults)
-ENV PUID=${PUID:-1000} \
-    PGID=${PGID:-1000}
-
-# Create a group and a user with the specified UID/GID
-RUN groupadd -g "${PGID}" appuser && \
-    useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
+# Create a group with the specified GID
+RUN groupadd -g "${PGID}" appuser
+# Create a user with the specified UID and GID
+RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
 
 WORKDIR /app
 
-### ---------------------- KOHYA ENVIRONMENT ---------------------- ###
-# Create a virtual environment for kohya-ss/sd-scripts
-RUN python3 -m venv /app/kohya-venv
-# Use the kohya virtual environment for subsequent commands
-ENV PATH="/app/kohya-venv/bin:$PATH"
-# Upgrade pip inside kohya-venv
-RUN /app/kohya-venv/bin/pip install --upgrade pip
-# Clone and install sd-scripts (including its package, e.g. "library")
+# Get sd-scripts from kohya-ss and install them
 RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
     cd sd-scripts && \
-    /app/kohya-venv/bin/pip install --no-cache-dir -r ./requirements.txt && \
-    /app/kohya-venv/bin/pip install --no-cache-dir . 
-# Remove the sd-scripts folder once installed
-RUN rm -rf sd-scripts
+    pip install --no-cache-dir -r ./requirements.txt
 
-### ---------------------- FLUXGYM ENVIRONMENT ---------------------- ###
-# Create a separate virtual environment for FluxGym
-RUN python3 -m venv /app/fluxgym-venv
-# Use fluxgym-venv for subsequent commands
-ENV PATH="/app/fluxgym-venv/bin:$PATH"
-# Upgrade pip inside fluxgym-venv
-RUN /app/fluxgym-venv/bin/pip install --upgrade pip
+# Install main application dependencies
+COPY ./requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir -r ./requirements.txt
 
-RUN /app/fluxgym-venv/bin/pip install --upgrade --force-reinstall triton==2.1.0
+# Install Torch, Torchvision, and Torchaudio for CUDA 12.2
+RUN pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
+# fix for #325
+RUN pip install --upgrade --force-reinstall triton==2.1.0
 
-# Copy requirements first to leverage Docker cache (prevents unnecessary reinstalls)
-COPY ./requirements.txt /app/requirements.txt
-# Install dependencies with optimized settings
-RUN /app/fluxgym-venv/bin/pip install --no-cache-dir --timeout=60 --retries=10 -r /app/requirements.txt
-
-# Install Torch, Torchvision, and Torchaudio for CUDA 12.2 (optimized download)
-RUN /app/fluxgym-venv/bin/pip install --find-links=https://download.pytorch.org/whl/cu122/ \
-    torch torchvision torchaudio
-
-# Set PYTHONPATH so FluxGym can import modules installed in kohya-venv (e.g. "library")
-ENV PYTHONPATH="/app/kohya-venv/lib/python3.10/site-packages:$PYTHONPATH"
-
-# Ensure proper permissions
 RUN chown -R appuser:appuser /app
 
-# Switch to non-root user
+# delete redundant requirements.txt and sd-scripts directory within the container
+RUN rm -r ./sd-scripts
+RUN rm ./requirements.txt
+
+#Run application as non-root
 USER appuser
 
-# Copy FluxGym application code into /app/fluxgym
+# Copy fluxgym application code
 COPY . ./fluxgym
 
 EXPOSE 7860
+
 ENV GRADIO_SERVER_NAME="0.0.0.0"
 
 WORKDIR /app/fluxgym
 
-# Run FluxGym using the fluxgym virtual environment (using system python3, which will pick up site‑packages)
+# Run fluxgym Python application
 CMD ["python3", "./app.py"]
