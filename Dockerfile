@@ -1,10 +1,11 @@
 # Base image with CUDA 12.2
 FROM nvidia/cuda:12.2.2-base-ubuntu22.04
 
-# Install system dependencies
+# Install system dependencies, including python3-venv for virtual environments
 RUN apt-get update -y && apt-get install -y \
     python3-pip \
     python3-dev \
+    python3-venv \  # <-- Added this to fix venv issue
     git \
     build-essential  # Install dependencies for building extensions
 
@@ -20,6 +21,9 @@ RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
 WORKDIR /app
 
 ### ---------------------- KOHYA ENVIRONMENT ---------------------- ###
+
+# Install python3-venv to fix missing ensurepip error
+RUN apt-get update && apt-get install -y python3-venv
 
 # Create and activate a virtual environment for Kohya
 RUN python3 -m venv /app/kohya-venv
