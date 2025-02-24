@@ -9,41 +9,37 @@ RUN apt-get update -y && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*  # Clean up APT cache to reduce image size
 
-# Define environment variables for UID and GID and local timezone
+# Define environment variables for UID and GID
 ENV PUID=${PUID:-1000}
 ENV PGID=${PGID:-1000}
 
-# Create a group with the specified GID
-RUN groupadd -g "${PGID}" appuser
-# Create a user with the specified UID and GID
-RUN useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
+# Create a group and user with the specified GID and UID
+RUN groupadd -g "${PGID}" appuser && \
+    useradd -m -s /bin/sh -u "${PUID}" -g "${PGID}" appuser
 
 WORKDIR /app
 
-# Copy the main requirements.txt first to optimize Docker caching
+# Copy and install main application dependencies
 COPY ./requirements.txt ./requirements.txt
-
-# Install dependencies with detailed output
-RUN pip install --progress=plain --no-cache-dir -r ./requirements.txt
+RUN python3 -m pip install --upgrade pip && \
+    pip install --no-cache-dir -r ./requirements.txt
 
 # Clone sd-scripts from kohya-ss and install dependencies
 RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
     cd sd-scripts && \
-    pip install --progress=plain --no-cache-dir -r ./requirements.txt
+    pip install --no-cache-dir -r ./requirements.txt && \
+    cd .. && rm -rf sd-scripts  # Clean up after installation
 
 # Install Torch, Torchvision, and Torchaudio for CUDA 12.2
-RUN pip install --progress=plain --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
+RUN pip install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
 
 # Fix for issue #325
-RUN pip install --progress=plain --upgrade --force-reinstall triton==2.1.0
+RUN pip install --no-cache-dir --upgrade --force-reinstall triton==2.1.0
 
 # Change ownership of the /app directory
 RUN chown -R appuser:appuser /app
 
-# Delete redundant sd-scripts directory within the container
-RUN rm -rf ./sd-scripts
-
-# Run application as non-root
+# Switch to non-root user
 USER appuser
 
 # Copy fluxgym application code
