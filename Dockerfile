@@ -34,8 +34,7 @@ RUN git clone -b sd3 https://github.com/kohya-ss/sd-scripts && \
 RUN pip install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
 
 # Fix for issue #325
-RUN pip install --no-cache-dir --upgrade --force-reinstall triton==2.1.0
-
+RUN pip install --no-cache-dir triton==3.2.0
 # Change ownership of the /app directory
 RUN chown -R appuser:appuser /app
 
