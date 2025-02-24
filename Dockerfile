@@ -11,6 +11,9 @@ RUN apt-get update -y && apt-get install -y \
     libgl1-mesa-glx \
     libglib2.0-0
 
+# Use a faster PyPI mirror for better package download speeds
+RUN pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+
 # Define environment variables for UID and GID (with defaults)
 ENV PUID=${PUID:-1000} \
     PGID=${PGID:-1000}
@@ -41,12 +44,17 @@ RUN rm -rf sd-scripts
 RUN python3 -m venv /app/fluxgym-venv
 # Use fluxgym-venv for subsequent commands
 ENV PATH="/app/fluxgym-venv/bin:$PATH"
-# Upgrade pip inside fluxgym-venv and install FluxGym dependencies
-COPY ./requirements.txt ./requirements.txt
-RUN /app/fluxgym-venv/bin/pip install --upgrade pip && \
-    /app/fluxgym-venv/bin/pip install --no-cache-dir -r ./requirements.txt
-# Install Torch, Torchvision, and Torchaudio for CUDA 12.2
-RUN /app/fluxgym-venv/bin/pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu122/torch_stable.html
+# Upgrade pip inside fluxgym-venv
+RUN /app/fluxgym-venv/bin/pip install --upgrade pip
+
+# Copy requirements first to leverage Docker cache (prevents unnecessary reinstalls)
+COPY ./requirements.txt /app/requirements.txt
+# Install dependencies with optimized settings
+RUN /app/fluxgym-venv/bin/pip install --no-cache-dir --timeout=60 --retries=10 -r /app/requirements.txt
+
+# Install Torch, Torchvision, and Torchaudio for CUDA 12.2 (optimized download)
+RUN /app/fluxgym-venv/bin/pip install --find-links=https://download.pytorch.org/whl/cu122/ \
+    torch torchvision torchaudio
 
 # Set PYTHONPATH so FluxGym can import modules installed in kohya-venv (e.g. "library")
 ENV PYTHONPATH="/app/kohya-venv/lib/python3.10/site-packages:$PYTHONPATH"
